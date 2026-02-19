@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "stream-finder"
-version = "0.1.0"
+version = "1.0.0"
 description = "Stellar stream detection using persistent homology on Gaia data"
 requires-python = ">=3.11"
 license = "MIT"

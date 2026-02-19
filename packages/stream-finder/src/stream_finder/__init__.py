@@ -1,6 +1,6 @@
 """Stream-finder: stellar stream detection using persistent homology on Gaia data."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 from stream_finder.data import (
     GaiaQualityFilter,
