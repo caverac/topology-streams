@@ -1,0 +1,243 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+  PYTHON_VERSION: '3.11'
+
+permissions:
+  contents: read
+
+jobs:
+  # ===========================================================================
+  # Python Jobs (run in parallel)
+  # ===========================================================================
+
+  lint-python:
+    name: Lint (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Check formatting with black
+        run: >-
+          uv run black --check
+          packages/stream-finder/src/
+          packages/stream-finder/tests/
+          packages/explore/src/
+          packages/explore/tests/
+          packages/worker/src/
+          packages/worker/tests/
+          packages/cuda-kernels/python/topostreams_cuda/
+          packages/cuda-kernels/tests/
+
+      - name: Check import order with isort
+        run: >-
+          uv run isort --check-only
+          packages/stream-finder/src/
+          packages/stream-finder/tests/
+          packages/explore/src/
+          packages/explore/tests/
+          packages/worker/src/
+          packages/worker/tests/
+          packages/cuda-kernels/python/topostreams_cuda/
+          packages/cuda-kernels/tests/
+
+      - name: Lint with flake8
+        run: >-
+          uv run flake8
+          packages/stream-finder/src/
+          packages/stream-finder/tests/
+          packages/explore/src/
+          packages/explore/tests/
+          packages/worker/src/
+          packages/worker/tests/
+          packages/cuda-kernels/python/topostreams_cuda/
+          packages/cuda-kernels/tests/
+
+      - name: Lint with pylint
+        run: >-
+          uv run pylint
+          packages/stream-finder/src/
+          packages/stream-finder/tests/
+          packages/explore/src/
+          packages/explore/tests/
+          packages/worker/src/
+          packages/worker/tests/
+          packages/cuda-kernels/python/topostreams_cuda/
+
+      - name: Check docstrings with pydocstyle
+        run: >-
+          uv run pydocstyle
+          packages/stream-finder/src/
+          packages/explore/src/
+          packages/worker/src/
+          packages/cuda-kernels/python/topostreams_cuda/
+
+  typecheck-python:
+    name: Typecheck (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run mypy
+        run: >-
+          uv run mypy
+          packages/stream-finder/src/
+          packages/stream-finder/tests/
+          packages/explore/src/
+          packages/explore/tests/
+          packages/worker/src/
+          packages/worker/tests/
+
+  test-python:
+    name: Test (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Test stream-finder
+        working-directory: packages/stream-finder
+        run: uv run python -m pytest tests/ -v
+
+      - name: Test explore
+        working-directory: packages/explore
+        run: uv run python -m pytest tests/ -v
+
+      - name: Test worker
+        working-directory: packages/worker
+        run: uv run python -m pytest tests/ -v
+
+  # ===========================================================================
+  # JS/TS Jobs (run in parallel)
+  # ===========================================================================
+
+  lint-js:
+    name: Lint (JS/TS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run ESLint
+        run: yarn lint
+
+      - name: Check formatting
+        run: yarn format
+
+  typecheck-js:
+    name: Typecheck (JS/TS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run TypeScript checks
+        run: yarn typecheck
+
+  test-js:
+    name: Test (JS/TS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run CDK tests
+        run: yarn workspace @topology-streams/infrastructure test
+
+  # ===========================================================================
+  # Build (requires all lint/test jobs to pass)
+  # ===========================================================================
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs:
+      - lint-python
+      - typecheck-python
+      - test-python
+      - lint-js
+      - typecheck-js
+      - test-js
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build all workspaces
+        run: yarn build

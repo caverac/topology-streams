@@ -1,0 +1,89 @@
+[project]
+name = "topology-streams-workspace"
+version = "0.0.0"
+description = "uv workspace root — not a real package"
+requires-python = ">=3.11"
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/stream-finder", "packages/explore", "packages/cuda-kernels/python", "packages/worker"]
+
+[tool.uv.sources]
+stream-finder = { workspace = true }
+explore = { workspace = true }
+topostreams-cuda = { workspace = true }
+topostreams-worker = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "stream-finder",
+    "explore",
+    "pytest>=8.0",
+    "mypy>=1.15",
+    "black>=24.0.0",
+    "flake8>=7.0.0",
+    "flake8-docstrings>=1.7.0",
+    "pylint>=3.0.0",
+    "pydocstyle>=6.3.0",
+    "isort>=5.13.0",
+    "python-semantic-release>=10.5.3",
+    "build>=1.4.0",
+    "pre-commit>=4.0.0",
+]
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.pylint.main]
+max-line-length = 120
+
+[tool.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+explicit_package_bases = true
+mypy_path = [
+    "packages/stream-finder/src",
+    "packages/explore/src",
+    "packages/worker/src",
+    "packages/cuda-kernels/python",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "scipy.*",
+    "astropy.*",
+    "astroquery.*",
+    "ripser.*",
+    "persim.*",
+    "gudhi.*",
+    "giotto.*",
+    "sklearn.*",
+    "matplotlib.*",
+    "pyarrow.*",
+    "click.*",
+    "rich.*",
+    "boto3",
+    "boto3.*",
+    "botocore",
+    "botocore.*",
+    "moto.*",
+    "topostreams_cuda.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests that require network access or large data",
+]
