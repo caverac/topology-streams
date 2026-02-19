@@ -18,7 +18,7 @@ TopoStreams applies topological data analysis (TDA) to Gaia DR3 phase-space data
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
     CLI["explore CLI"]
     APIGW["API Gateway\n(IAM auth)"]
     Lambda
